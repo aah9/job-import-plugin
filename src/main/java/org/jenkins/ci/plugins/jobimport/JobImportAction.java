@@ -30,6 +30,7 @@ import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredenti
 import com.cloudbees.plugins.credentials.domains.DomainRequirement;
 import hudson.Extension;
 import hudson.PluginManager;
+import hudson.PluginWrapper;
 import hudson.model.AbstractItem;
 import hudson.model.Describable;
 import hudson.model.Descriptor;
@@ -41,6 +42,7 @@ import hudson.security.Permission;
 import hudson.security.PermissionGroup;
 import hudson.security.PermissionScope;
 import hudson.util.ListBoxModel;
+import hudson.util.VersionNumber;
 import jenkins.model.Jenkins;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
@@ -69,6 +71,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
@@ -229,18 +232,35 @@ public final class JobImportAction implements RootAction, Describable<JobImportA
             }
           }
 
+          PluginManager manager = PluginManager.createDefault(Jenkins.get());
+
           if (newItem != null) {
 
             if (installPlugins) {
               Jenkins instance = Jenkins.get();
               instance.getAuthorizationStrategy().getACL(instance).checkPermission(Jenkins.ADMINISTER);
-              PluginManager.createDefault(Jenkins.get()).prevalidateConfig(
-                      URLUtils.fetchUrl(remoteJob.getUrl() + "/config.xml", credentials.username, credentials.password));
+              manager.prevalidateConfig(URLUtils.fetchUrl(remoteJob.getUrl() + "/config.xml", credentials.username, credentials.password));
             }
 
             newItem.save();
           }
+          
+          Map<String, VersionNumber> requiredPlugins = manager.parseRequestedPlugins(URLUtils.fetchUrl(remoteJob.getUrl() + "/config.xml", credentials.username, credentials.password));
 
+          TreeMap<String, String> installedPlugins = new TreeMap<>();
+          for (PluginWrapper plugin : Jenkins.get().pluginManager.getPlugins()) {
+            installedPlugins.put(plugin.getShortName(), plugin.getVersion());
+          }
+
+          TreeMap<String, String> missingPlugins = new TreeMap<>();
+          for (String plugin : requiredPlugins.keySet()) {
+            if ( !installedPlugins.containsKey(plugin) ) {
+              missingPlugins.put(plugin, requiredPlugins.get(plugin).toString());
+            }
+          }
+
+          remoteJob.setPlugins(missingPlugins);
+          
           remoteJobsImportStatus.get(remoteJob).setStatus(MessagesUtils.formatSuccess());
 
           if (remoteJob.isFolder() && ((RemoteFolder) remoteJob).hasChildren()) {

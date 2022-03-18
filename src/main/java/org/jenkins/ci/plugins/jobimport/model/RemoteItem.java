@@ -1,5 +1,7 @@
 package org.jenkins.ci.plugins.jobimport.model;
 
+import java.util.Map;
+
 import com.google.common.base.Objects;
 import org.apache.commons.lang.ObjectUtils;
 import org.jenkins.ci.plugins.jobimport.utils.RemoteItemUtils;
@@ -12,6 +14,8 @@ public abstract class RemoteItem implements Serializable, Comparable<RemoteItem>
     protected final String impl;
     protected final String url;
     protected final String description;
+    
+    protected Map<String, String> plugins;
 
     protected final RemoteFolder parent;
 
@@ -50,6 +54,14 @@ public abstract class RemoteItem implements Serializable, Comparable<RemoteItem>
 
     public boolean hasParent(){
         return parent != null;
+    }
+
+    public String getPlugins() {
+      return plugins.toString();
+    }
+
+    public void setPlugins(final Map<String, String> plugins) {
+      this.plugins = plugins;
     }
 
     @Override

@@ -112,11 +112,13 @@
                 <tr>
                   <th>Name</th>
                   <th>Status</th>
+                  <th>Plugins</th>
                 </tr>
                 <j:forEach var="status" items="${remoteJobsImportStatus}">
                   <tr>
                     <td>${status.key.fullName}</td>
                     <td>${status.value.status}</td>
+                    <td>${status.key.plugins}</td>
                   </tr>
                 </j:forEach>
               </table>
