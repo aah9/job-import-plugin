@@ -32,6 +32,7 @@ import hudson.Extension;
 import hudson.PluginManager;
 import hudson.PluginWrapper;
 import hudson.model.AbstractItem;
+import hudson.model.AbstractProject;
 import hudson.model.Describable;
 import hudson.model.Descriptor;
 import hudson.model.Item;
@@ -134,7 +135,7 @@ public final class JobImportAction implements RootAction, Describable<JobImportA
     if (remoteJobsAvailable != null && remoteJobsAvailable.equalsIgnoreCase("true")) {
       if (request.hasParameter(Constants.JOB_URL_PARAM)) {
         for (final String jobUrl : Arrays.asList(request.getParameterValues(Constants.JOB_URL_PARAM))) {
-          doImportInternal(jobUrl, localFolder, credentialId, shouldInstallPlugins(request.getParameter("plugins")), shouldUpdate(request.getParameter("update")), remoteJobs, remoteJobsImportStatus);
+          doImportInternal(jobUrl, localFolder, credentialId, shouldInstallPlugins(request.getParameter("plugins")), shouldUpdate(request.getParameter("update")), shouldDisable(request.getParameter("disable-" + jobUrl)), remoteJobs, remoteJobsImportStatus);
         }
       }
     }
@@ -187,6 +188,7 @@ public final class JobImportAction implements RootAction, Describable<JobImportA
                                 String credentialId,
                                 boolean installPlugins,
                                 boolean update,
+                                boolean disable,
                                 SortedSet<RemoteItem> remoteJobs,
                                 SortedMap<RemoteItem, RemoteItemImportStatus> remoteJobsImportStatus) throws IOException {
     final RemoteItem remoteJob = RemoteItemUtils.getRemoteJob(remoteJobs, jobUrl);
@@ -243,6 +245,12 @@ public final class JobImportAction implements RootAction, Describable<JobImportA
             }
 
             newItem.save();
+            
+            boolean canDisable = newItem instanceof AbstractProject;
+            
+            if (canDisable && disable) {
+              ((AbstractProject) newItem).disable();
+            }
           }
           
           Map<String, VersionNumber> requiredPlugins = manager.parseRequestedPlugins(URLUtils.fetchUrl(remoteJob.getUrl() + "/config.xml", credentials.username, credentials.password));
@@ -265,7 +273,7 @@ public final class JobImportAction implements RootAction, Describable<JobImportA
 
           if (remoteJob.isFolder() && ((RemoteFolder) remoteJob).hasChildren()) {
             for (RemoteItem childJob : ((RemoteFolder) remoteJob).getChildren()) {
-              doImportInternal(childJob.getUrl(), newItem.getFullName(), credentialId, installPlugins, update, remoteJobs, remoteJobsImportStatus);
+              doImportInternal(childJob.getUrl(), newItem.getFullName(), credentialId, installPlugins, update, disable, remoteJobs, remoteJobsImportStatus);
             }
           }
         } catch (final Exception e) {
@@ -338,6 +346,10 @@ public final class JobImportAction implements RootAction, Describable<JobImportA
   }
 
   private boolean shouldUpdate(String param) {
+    return StringUtils.equals("on", param);
+  }
+
+  private boolean shouldDisable(String param) {
     return StringUtils.equals("on", param);
   }
 
