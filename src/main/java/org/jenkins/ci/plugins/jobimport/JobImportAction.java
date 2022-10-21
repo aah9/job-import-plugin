@@ -384,6 +384,9 @@ public final class JobImportAction implements RootAction, Describable<JobImportA
     public String getDisplayName() { return ""; }
 
     public ListBoxModel doFillCredentialIdItems() {
+      if (!Jenkins.get().hasPermission(JOB_IMPORT)) {
+        return new StandardListBoxModel();
+      }
       return new StandardListBoxModel()
               .includeEmptyValue()
               .includeMatchingAs(
@@ -402,6 +405,9 @@ public final class JobImportAction implements RootAction, Describable<JobImportA
     }
 
     public ListBoxModel doFillJenkinsSitesItems() {
+      if (!Jenkins.get().hasPermission(JOB_IMPORT)) {
+        return new StandardListBoxModel();
+      }
       final ListBoxModel listBoxModel = new ListBoxModel();
       JobImportGlobalConfig.get().getSites().stream().forEach(s -> listBoxModel.add(s.getName(), s.getName() + "-" + s.getUrl() + "-" + s.getDefaultCredentialsId()));
       return listBoxModel;
